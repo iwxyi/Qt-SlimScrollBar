@@ -9,6 +9,7 @@
 #include <QPainterPath>
 #include <QTimer>
 #include <QDebug>
+#include "slimscrollbarpopup.h"
 
 #define DEB_EVENT if (0) qDebug()
 
@@ -40,9 +41,11 @@ private:
     void paintPixmap();
     void activeTimer();
     int quick_sqrt(long X) const;
+    void calcPixmapSize();
+    void startPopup();
+    void repaintPopup();
 
 signals:
-    void signalRepaint();
 
 public slots:
 
@@ -65,11 +68,14 @@ private:
     bool pressing = false;
     int hover_prop = 0;
     int press_prop = 0;
-    QPoint press_pos;
-    QPoint mouse_pos;
-    QPoint anchor_pos;
-    QPoint offset_pos;
-    QPoint effect_pos;
+    QPoint press_pos;  // 按下位置
+    QPoint mouse_pos;  // 鼠标位置
+    QPoint target_pos; // 实时随队鼠标的目标点（相对竖直中心）
+    QPoint anchor_pos; // 逐步靠近目标点的锚点
+    QPoint effect_pos; // 偏差（相对于左上角），逐步靠近锚点根号位置
+
+    SlimScrollBarPopup* popup = nullptr;
+    QPoint popup_offset; // 弹窗和自己的左上角的绝对位置差
 };
 
 #endif // SLIMSCROLLBAR_H

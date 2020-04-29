@@ -107,8 +107,26 @@ void SlimScrollBar::mouseMoveEvent(QMouseEvent *e)
     if(pressing)
     {
         mouse_pos = e->pos();
-        // 判断拖拽的位置，调整可视区域大小
 
+        // 判断拖拽的位置，调整可视区域大小
+        // 已经显示弹窗，则应该实时调整
+        // 如果没有，那么当开始拖拽的时候，就应该开始调整
+        if (popup || qAbs(e->pos().x() - press_pos.x()) >= width())
+        {
+            target_pos.setX(mouse_pos.x() - width()/2);
+            if (mouse_pos.y() <= 0)
+                target_pos.setY(mouse_pos.y());
+            else
+                target_pos.setY(mouse_pos.y() - height());
+
+            // 拖动，重新设置大小
+            calcPixmapSize();
+
+            if (!popup)
+            {
+                startPopup();
+            }
+        }
     }
 }
 
@@ -120,6 +138,8 @@ void SlimScrollBar::mouseReleaseEvent(QMouseEvent *e)
     if (pressing && e->button() == Qt::LeftButton)
     {
         pressing = false;
+
+        target_pos = QPoint(0, 0);
     }
 }
 
@@ -138,13 +158,18 @@ void SlimScrollBar::paintEvent(QPaintEvent *e)
 
     // TODO: 判断需不需要重绘
 
-    // 绘制自己的控件
+    // 绘制到pixmap
     paintPixmap();
 
-    QPainter painter(this);
-    painter.drawPixmap(QRect(0,0,width(),height()), pixmap, QRect(pixmap.width()-width(), 0, width(), height()));
-
-    emit signalRepaint();
+    if (!popup) // 如果没有显示弹窗，绘制到自己
+    {
+        QPainter painter(this);
+        painter.drawPixmap(QRect(0,0,width(),height()), pixmap, QRect(pixmap.width()-width(), 0, width(), height()));
+    }
+    else // 绘制到弹窗
+    {
+        repaintPopup();
+    }
 }
 
 /**
@@ -290,25 +315,38 @@ void SlimScrollBar::eventTimer()
     }
 
     // 判断移动
-    if (anchor_pos != mouse_pos)
+    if (anchor_pos != target_pos)
     {
-        int delta_x = anchor_pos.x() - mouse_pos.x();
-        int delta_y = anchor_pos.y() - mouse_pos.y();
+        int delta_x = anchor_pos.x() - target_pos.x();
+        int delta_y = anchor_pos.y() - target_pos.y();
 
+        // 锚点靠近目标点
         anchor_pos.setX( anchor_pos.x() - quick_sqrt(delta_x) );
         anchor_pos.setY( anchor_pos.y() - quick_sqrt(delta_y) );
 
+        // 偏差点是锚点 开方
         effect_pos.setX( quick_sqrt(static_cast<long>(anchor_pos.x())) );
         effect_pos.setY( quick_sqrt(static_cast<long>(anchor_pos.y())) );
-        offset_pos.setX(quick_sqrt(static_cast<long>(anchor_pos.x()-(geometry().width()>>1))));
-        offset_pos.setY(quick_sqrt(static_cast<long>(anchor_pos.y()-(geometry().height()>>1))));
+
+        qDebug() << target_pos << anchor_pos << effect_pos;
     }
 
+    // 更新图片
+    calcPixmapSize();
+
     // 自动暂停
-    if(!hovering && !pressing && hover_prop == 0 && press_prop == 0)
+    if(!hovering && !pressing && hover_prop == 0 && press_prop == 0 && effect_pos == QPoint(0,0))
     {
         event_timer->stop();
+        if (popup != nullptr)
+        {
+            // 删除popup
+            popup->deleteLater();
+            popup = nullptr;
+        }
     }
+
+    update();
 }
 
 /**
@@ -375,4 +413,46 @@ int SlimScrollBar::quick_sqrt(long X) const
         }
     }
     return (fu ? -1 : 1) * static_cast<int>(N); // 不知道为什么计算出来的结果是反过来的
+}
+
+void SlimScrollBar::calcPixmapSize()
+{
+    int leftest = qMin(qMin(target_pos.x(), 0), effect_pos.x());
+    int rightest = qMax(qMax(target_pos.x(), width()), effect_pos.x()+width());
+    int wi = rightest - leftest;
+    int topest = qMin(qMin(target_pos.y(), 0), effect_pos.x());
+    int bottomest = qMax(qMax(target_pos.y(), height()), effect_pos.x()+height());
+    int he = bottomest - topest;
+    pixmap = QPixmap(QSize(wi, he));
+    popup_offset.setX(0 - leftest);
+    popup_offset.setY(0 - topest);
+}
+
+/**
+ * 切换至浮窗界面
+ * 初始化所有数据
+ */
+void SlimScrollBar::startPopup()
+{
+    if (!popup)
+    {
+        popup = new SlimScrollBarPopup(this);
+        popup->pixmap = &pixmap;
+    }
+
+    paintPixmap();
+    repaintPopup();
+}
+
+/**
+ * 自己更新界面，重绘弹窗
+ */
+void SlimScrollBar::repaintPopup()
+{
+    // 设置大小
+    popup->resize(pixmap.size());
+    // 设置绘制位置
+    popup->offset = popup_offset;
+    // 绘制图片
+    popup->update();
 }

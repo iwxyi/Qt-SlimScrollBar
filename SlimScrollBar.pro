@@ -19,12 +19,14 @@ SOURCES += \
     main.cpp \
     mainwindow.cpp \
     mytextedit.cpp \
-    slimscrollbar.cpp
+    slimscrollbar.cpp \
+    slimscrollbarpopup.cpp
 
 HEADERS += \
     mainwindow.h \
     mytextedit.h \
-    slimscrollbar.h
+    slimscrollbar.h \
+    slimscrollbarpopup.h
 
 FORMS += \
     mainwindow.ui
