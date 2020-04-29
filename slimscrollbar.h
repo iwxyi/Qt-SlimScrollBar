@@ -7,6 +7,7 @@
 #include <QResizeEvent>
 #include <QPainter>
 #include <QPainterPath>
+#include <QTimer>
 #include <QDebug>
 
 #define DEB_EVENT if (0) qDebug()
@@ -18,6 +19,9 @@ public:
     SlimScrollBar(QWidget* parent = nullptr);
 
     void paintScrollBar(QPainter& painter, QSize size);
+
+    void enable();
+    void disable();
 
 protected:
     void enterEvent(QEvent* e) override;
@@ -34,6 +38,7 @@ protected:
 
 private:
     void paintPixmap();
+    void activeTimer();
 
 signals:
     void signalRepaint();
@@ -41,19 +46,27 @@ signals:
 public slots:
 
 private slots:
+    void eventTimer();
 
 private:
     QPixmap pixmap;
+    QTimer* event_timer;
 
     QColor bg_normal_color = QColor(128, 128, 128, 64);
-    QColor bg_hover_color = QColor(128, 128, 128, 128);
-    QColor bg_press_color = QColor(128, 128, 128, 192);
-    QColor fg_normal_color = QColor(66, 103, 124, 128);
-    QColor fg_hover_color = QColor(66, 103, 124, 192);
-    QColor fg_press_color = QColor(66, 103, 124, 255);
+    QColor bg_hover_color = QColor(128, 128, 128, 0);
+    QColor bg_press_color = QColor(128, 128, 128, 32);
+    QColor fg_normal_color = QColor(66, 103, 124, 64);
+    QColor fg_hover_color = QColor(66, 103, 124, 128);
+    QColor fg_press_color = QColor(66, 103, 124, 192);
 
+    bool enabling = true;
     bool hovering = false;
     bool pressing = false;
+    int hover_prop = 0;
+    int press_prop = 0;
+    QPoint press_pos;
+    QPoint cursor_pos;
+    QPoint offset_pos;
 };
 
 #endif // SLIMSCROLLBAR_H
