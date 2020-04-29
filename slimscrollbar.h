@@ -17,6 +17,8 @@ class SlimScrollBar : public QScrollBar
 public:
     SlimScrollBar(QWidget* parent = nullptr);
 
+    void paintScrollBar(QPainter& painter, QSize size);
+
 protected:
     void enterEvent(QEvent* e) override;
     void leaveEvent(QEvent* e) override;
@@ -31,9 +33,10 @@ protected:
     void resizeEvent(QResizeEvent *e) override;
 
 private:
+    void paintPixmap();
 
 signals:
-    void signalRepaint(QPixmap* pixmap);
+    void signalRepaint();
 
 public slots:
 
@@ -42,6 +45,15 @@ private slots:
 private:
     QPixmap pixmap;
 
+    QColor bg_normal_color = QColor(128, 128, 128, 64);
+    QColor bg_hover_color = QColor(128, 128, 128, 128);
+    QColor bg_press_color = QColor(128, 128, 128, 192);
+    QColor fg_normal_color = QColor(66, 103, 124, 128);
+    QColor fg_hover_color = QColor(66, 103, 124, 192);
+    QColor fg_press_color = QColor(66, 103, 124, 255);
+
+    bool hovering = false;
+    bool pressing = false;
 };
 
 #endif // SLIMSCROLLBAR_H

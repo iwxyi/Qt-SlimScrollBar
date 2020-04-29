@@ -18,10 +18,12 @@ DEFINES += QT_DEPRECATED_WARNINGS
 SOURCES += \
     main.cpp \
     mainwindow.cpp \
+    mytextedit.cpp \
     slimscrollbar.cpp
 
 HEADERS += \
     mainwindow.h \
+    mytextedit.h \
     slimscrollbar.h
 
 FORMS += \

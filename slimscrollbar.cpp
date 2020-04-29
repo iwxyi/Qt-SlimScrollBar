@@ -61,7 +61,7 @@ SlimScrollBar::SlimScrollBar(QWidget *parent) : QScrollBar(parent)
             {\
                 background:rgba(0,0,0,0%);\
                 border-radius:0px;\
-            }");
+                  }");
 }
 
 void SlimScrollBar::enterEvent(QEvent *e)
@@ -105,9 +105,15 @@ void SlimScrollBar::paintEvent(QPaintEvent *e)
     // 这里是透明度，必须得绘制（不然是纯黑色）
     QScrollBar::paintEvent(e);
 
-    // 绘制自己的控件
+    // TODO: 判断需不需要重绘
 
-    emit signalRepaint(&pixmap);
+    // 绘制自己的控件
+    paintPixmap();
+
+    QPainter painter(this);
+    painter.drawPixmap(QRect(0,0,width(),height()), pixmap, QRect(pixmap.width()-width(), 0, width(), height()));
+
+    emit signalRepaint();
 }
 
 /**
@@ -142,5 +148,34 @@ void SlimScrollBar::resizeEvent(QResizeEvent *e)
 
     // 重新设置滚动条图片的大小
     pixmap = QPixmap(e->size());
-    qDebug() << "size:" << e->size();
+    // 应该会自动update吧
+    // update();
+}
+
+/**
+ * 绘制自身控件至pixmap
+ * 如果大小改变，则调整pixmap的大小
+ */
+void SlimScrollBar::paintPixmap()
+{
+    pixmap.fill(Qt::transparent);
+    QPainter painter(&pixmap);
+    QPainterPath bg_path;
+    QPainterPath fg_path;
+
+    // 绘制背景
+    painter.fillRect(0,0,width(),height(),bg_normal_color);
+
+    // 绘制前景
+    int range = maximum() - minimum();
+    int step = this->pageStep();
+    int height = this->height() * step / range;
+    int top = (this->height() - height) * sliderPosition() / range;
+    painter.fillRect(0, top, width(), height, fg_normal_color);
+}
+
+void SlimScrollBar::paintScrollBar(QPainter &painter, QSize size)
+{
+    QRect rect(size.width()+this->width()-pixmap.width(), 0, pixmap.width(), pixmap.height());
+    painter.drawPixmap(rect, pixmap);
 }

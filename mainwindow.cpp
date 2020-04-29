@@ -6,8 +6,6 @@ MainWindow::MainWindow(QWidget *parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-
-    ui->textEdit->setVerticalScrollBar(new SlimScrollBar(this));
 }
 
 MainWindow::~MainWindow()
