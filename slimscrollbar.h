@@ -39,6 +39,7 @@ protected:
 private:
     void paintPixmap();
     void activeTimer();
+    int quick_sqrt(long X) const;
 
 signals:
     void signalRepaint();
@@ -65,8 +66,10 @@ private:
     int hover_prop = 0;
     int press_prop = 0;
     QPoint press_pos;
-    QPoint cursor_pos;
+    QPoint mouse_pos;
+    QPoint anchor_pos;
     QPoint offset_pos;
+    QPoint effect_pos;
 };
 
 #endif // SLIMSCROLLBAR_H

@@ -95,6 +95,7 @@ void SlimScrollBar::mousePressEvent(QMouseEvent *e)
     if (e->button() == Qt::LeftButton)
     {
         pressing = true;
+        anchor_pos = mouse_pos = press_pos = e->pos();
     }
 }
 
@@ -105,6 +106,7 @@ void SlimScrollBar::mouseMoveEvent(QMouseEvent *e)
 
     if(pressing)
     {
+        mouse_pos = e->pos();
         // 判断拖拽的位置，调整可视区域大小
 
     }
@@ -240,6 +242,7 @@ void SlimScrollBar::activeTimer()
  */
 void SlimScrollBar::eventTimer()
 {
+    // 判断比例
     if (hovering)
     {
         if (hover_prop < 100)
@@ -286,6 +289,22 @@ void SlimScrollBar::eventTimer()
         }
     }
 
+    // 判断移动
+    if (anchor_pos != mouse_pos)
+    {
+        int delta_x = anchor_pos.x() - mouse_pos.x();
+        int delta_y = anchor_pos.y() - mouse_pos.y();
+
+        anchor_pos.setX( anchor_pos.x() - quick_sqrt(delta_x) );
+        anchor_pos.setY( anchor_pos.y() - quick_sqrt(delta_y) );
+
+        effect_pos.setX( quick_sqrt(static_cast<long>(anchor_pos.x())) );
+        effect_pos.setY( quick_sqrt(static_cast<long>(anchor_pos.y())) );
+        offset_pos.setX(quick_sqrt(static_cast<long>(anchor_pos.x()-(geometry().width()>>1))));
+        offset_pos.setY(quick_sqrt(static_cast<long>(anchor_pos.y()-(geometry().height()>>1))));
+    }
+
+    // 自动暂停
     if(!hovering && !pressing && hover_prop == 0 && press_prop == 0)
     {
         event_timer->stop();
@@ -309,4 +328,51 @@ void SlimScrollBar::enable()
 void SlimScrollBar::disable()
 {
     enabling = false;
+}
+
+/**
+ * 速度极快的开方算法，效率未知，原理未知
+ * @param  X 待开方的数字
+ * @return   平方根
+ */
+int SlimScrollBar::quick_sqrt(long X) const
+{
+    bool fu = false;
+    if (X < 0)
+    {
+        fu = true;
+        X = -X;
+    }
+#if !defined(Q_OS_WIN)
+    X = qSqrt(X);
+    return fu ? -X : X;
+#endif
+    unsigned long M = static_cast<unsigned long>(X);
+    unsigned int N, i;
+    unsigned long tmp, ttp; // 结果、循环计数
+    if (M == 0) // 被开方数，开方结果也为0
+        return 0;
+    N = 0;
+    tmp = (M >> 30); // 获取最高位：B[m-1]
+    M <<= 2;
+    if (tmp > 1) // 最高位为1
+    {
+        N ++; // 结果当前位为1，否则为默认的0
+        tmp -= N;
+    }
+    for (i = 15; i > 0; i--) // 求剩余的15位
+    {
+        N <<= 1; // 左移一位
+        tmp <<= 2;
+        tmp += (M >> 30); // 假设
+        ttp = N;
+        ttp = (ttp << 1) + 1;
+        M <<= 2;
+        if (tmp >= ttp) // 假设成立
+        {
+            tmp -= ttp;
+            N ++;
+        }
+    }
+    return (fu ? -1 : 1) * static_cast<int>(N); // 不知道为什么计算出来的结果是反过来的
 }
