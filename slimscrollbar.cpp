@@ -72,7 +72,7 @@ SlimScrollBar::SlimScrollBar(QWidget *parent)
                   }");
 
     event_timer = new QTimer(this);
-    event_timer->setInterval(30);
+    event_timer->setInterval(16);
     connect(event_timer, SIGNAL(timeout()), this, SLOT(eventTimer()));
 }
 
@@ -289,6 +289,7 @@ void SlimScrollBar::paintPixmap()
         painter.setPen(QPen(bg_normal_color, pen_w));
         painter.drawPath(bg_path);
 
+        // 绘制前景
         int range = maximum() - minimum();
         int step = this->pageStep();
         int height = qMax(this->height() * step / range - 10, 16);
@@ -520,8 +521,8 @@ void SlimScrollBar::calcPixmapSize()
     int leftest = qMin(qMin(anchor_pos.x(), 0), effect_pos.x());
     int rightest = qMax(qMax(anchor_pos.x(), width()), effect_pos.x()+width());
     int wi = rightest - leftest;
-    int topest = qMin(qMin(anchor_pos.y(), 0), effect_pos.x());
-    int bottomest = qMax(qMax(anchor_pos.y(), height()), effect_pos.x()+height());
+    int topest = qMin(qMin(anchor_pos.y(), 0), effect_pos.y());
+    int bottomest = qMax(qMax(anchor_pos.y(), height()), effect_pos.y()+height());
     int he = bottomest - topest;
     pixmap = QPixmap(QSize(wi, he));
     popup_offset.setX(0-leftest);
