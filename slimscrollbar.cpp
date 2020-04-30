@@ -1,6 +1,9 @@
 #include "slimscrollbar.h"
 
-SlimScrollBar::SlimScrollBar(QWidget *parent) : QScrollBar(parent)
+SlimScrollBar::SlimScrollBar(QWidget *parent)
+    : QScrollBar(parent),
+    elastic_coefficient(1.2), jitter_duration(300),
+    water_press_duration(800), water_release_duration(400), water_finish_duration(300)
 {
     /*popup = new SlimScrollBarPopup(nullptr);
     popup->pixmap = &pixmap;
@@ -99,6 +102,7 @@ void SlimScrollBar::mousePressEvent(QMouseEvent *e)
     activeTimer();
     if (e->button() == Qt::LeftButton)
     {
+        jitters.clear();
         pressing = true;
         mouse_pos = press_pos = e->pos();
         setOffsetPoss();
@@ -140,7 +144,7 @@ void SlimScrollBar::mouseReleaseEvent(QMouseEvent *e)
     {
         pressing = false;
 
-        target_pos = QPoint(0, 0);
+        setJitter();
     }
 }
 
@@ -280,7 +284,7 @@ void SlimScrollBar::paintPixmap()
         bg_path.lineTo(btm_p);
 
         int pen_w = width();
-        pen_w -= quick_sqrt(qMax(qAbs(popup_offset.x()), qAbs(popup_offset.y())));
+        pen_w -= quick_sqrt(qAbs(anchor_pos.x()));
         pen_w = qMax(1, pen_w);
         painter.setPen(QPen(bg_normal_color, pen_w));
         painter.drawPath(bg_path);
@@ -319,7 +323,14 @@ void SlimScrollBar::activeTimer()
 
 void SlimScrollBar::setOffsetPoss()
 {
-    target_pos.setX(mouse_pos.x() - width()/2);
+    int x = mouse_pos.x() - width()/2;
+    const int maxi = width() * 8;
+    if (x < -maxi)
+        x = -maxi;
+    else if (x > maxi)
+        x = maxi;
+    target_pos.setX(x);
+
     /*if (mouse_pos.y() <= 0)
         target_pos.setY(mouse_pos.y());
     else if (mouse_pos.y() > height())
@@ -381,10 +392,30 @@ void SlimScrollBar::eventTimer()
         }
     }
 
-    // 判断移动
-//    QPoint sqrt_pos(quick_sqrt(target_pos.x()), quick_sqrt(target_pos.y())); // 开方再开方
-    if (anchor_pos != target_pos)
+    // 锚点移动
+    if (jitters.size() > 0)
     {
+        Jitter cur = jitters.first();
+        Jitter aim = jitters.at(1);
+        int del = static_cast<int>(getTimestamp()-cur.timestamp);
+        int dur = static_cast<int>(aim.timestamp - cur.timestamp);
+        if (del > dur)
+            del = dur;
+        anchor_pos = effect_pos = cur.point + (aim.point-cur.point)*del/dur;
+
+        if (del >= dur)
+            jitters.removeFirst();
+
+        // 抖动结束
+        if (jitters.size() == 1)
+        {
+            jitters.clear();
+            anchor_pos = effect_pos = target_pos;
+        }
+    }
+    else if (anchor_pos != target_pos)
+    {
+        // QPoint sqrt_pos(quick_sqrt(target_pos.x()), quick_sqrt(target_pos.y())); // 开方再开方
         int delta_x = anchor_pos.x() - target_pos.x();
         int delta_y = anchor_pos.y() - target_pos.y();
 
@@ -404,7 +435,7 @@ void SlimScrollBar::eventTimer()
     }
 
     // 自动暂停
-    if(!hovering && !pressing && hover_prop == 0 && press_prop == 0 && effect_pos == QPoint(0,0))
+    if(!hovering && !pressing && hover_prop == 0 && press_prop == 0 && effect_pos.x() == 0 && !jitters.size() && !waters.size())
     {
         event_timer->stop();
         if (popuping)
@@ -527,4 +558,47 @@ void SlimScrollBar::repaintPopup()
     popup->scrollbar_pixmap = pixmap;
     // 绘制图片
     popup->update();
+}
+
+/**
+ * 鼠标松开的时候，计算所有抖动效果的路径和事件
+ * 在每次重绘界面的时候，依次遍历所有的路径
+ */
+void SlimScrollBar::setJitter()
+{
+    jitters.clear();
+    QPoint center_pos(0, anchor_pos.y());
+    if (center_pos.y() < 0)
+        center_pos.setY(0);
+    else if (center_pos.y() > height())
+        center_pos.setY(height());
+    int full_manh = qAbs(anchor_pos.x());
+    if (full_manh > width() * 3)
+    {
+        QPoint jitter_pos(anchor_pos);
+        full_manh = (jitter_pos-center_pos).manhattanLength();
+        int manh = full_manh;
+        int duration = jitter_duration;
+        qint64 timestamp = getTimestamp();
+        while (manh > elastic_coefficient)
+        {
+            jitters << Jitter(jitter_pos, timestamp);
+            jitter_pos = center_pos - (jitter_pos - center_pos) / elastic_coefficient;
+            duration = jitter_duration * manh / full_manh;
+            timestamp += duration;
+            manh = static_cast<int>(manh / elastic_coefficient);
+        }
+        jitters << Jitter(center_pos, timestamp);
+        anchor_pos = mouse_pos = center_pos;
+    }
+    target_pos = QPoint(0, center_pos.y());
+}
+
+/**
+ * 获取现行时间戳，13位，精确到毫秒
+ * @return 时间戳
+ */
+qint64 SlimScrollBar::getTimestamp()
+{
+    return QDateTime::currentDateTime().toMSecsSinceEpoch();
 }
