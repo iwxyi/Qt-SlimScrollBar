@@ -22,7 +22,7 @@ signals:
 public slots:
 
 private:
-    QPixmap* pixmap = nullptr;
+    QPixmap scrollbar_pixmap;
     QPoint offset;
 };
 

@@ -2,10 +2,10 @@
 
 SlimScrollBar::SlimScrollBar(QWidget *parent) : QScrollBar(parent)
 {
-    popup = new SlimScrollBarPopup(nullptr);
+    /*popup = new SlimScrollBarPopup(nullptr);
     popup->pixmap = &pixmap;
     popup->show();
-    popup->setGeometry(-2, -2, 0, 0);
+    popup->setGeometry(-2, -2, 0, 0);*/
 
     setStyleSheet("\
             QScrollBar:vertical\
@@ -359,8 +359,8 @@ void SlimScrollBar::eventTimer()
             popuping = false;
             popup->setGeometry(-2, -2, 0, 0);
             // 删除popup
-//            popup->deleteLater();
-//            popup = nullptr;
+            popup->deleteLater();
+            popup = nullptr;
         }
     }
 
@@ -451,7 +451,6 @@ void SlimScrollBar::calcPixmapSize()
     pixmap = QPixmap(QSize(wi, he));
     popup_offset.setX(0-leftest);
     popup_offset.setY(0-topest);
-    qDebug () << "pixmap size" << QSize(wi, he) << popup_offset;
 }
 
 /**
@@ -461,12 +460,12 @@ void SlimScrollBar::calcPixmapSize()
 void SlimScrollBar::startPopup()
 {
     popuping = true;
-    /*if (!popup)
+    if (!popup)
     {
         popup = new SlimScrollBarPopup(nullptr);
-        popup->pixmap = &pixmap;
+        popup->scrollbar_pixmap = pixmap;
         popup->show();
-    }*/
+    }
 
     paintPixmap();
     repaintPopup();
@@ -481,7 +480,7 @@ void SlimScrollBar::repaintPopup()
     popup->setGeometry(QRect(mapToGlobal(pos())-popup_offset, pixmap.size()));
     // 设置绘制位置
     popup->offset = popup_offset;
+    popup->scrollbar_pixmap = pixmap;
     // 绘制图片
     popup->update();
-    this->setFocus();
 }
