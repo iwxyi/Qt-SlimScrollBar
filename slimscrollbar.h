@@ -50,6 +50,9 @@ public:
 
     void enable();
     void disable();
+    void setBgColors(QColor normal, QColor hover, QColor press);
+    void setFgColors(QColor normal, QColor hover, QColor press);
+    void setRoundCap(bool round);
 
 protected:
     void enterEvent(QEvent* e) override;
@@ -74,6 +77,7 @@ private:
     void repaintPopup();
     void setJitter();
     qint64 getTimestamp();
+    inline QPen getPen(QColor color, int width);
 
 signals:
 
@@ -92,6 +96,7 @@ private:
     QColor fg_normal_color = QColor(66, 103, 124, 64);
     QColor fg_hover_color = QColor(66, 103, 124, 128);
     QColor fg_press_color = QColor(66, 103, 124, 192);
+    bool round_cap = true;
 
     bool enabling = true;
     bool hovering = false;

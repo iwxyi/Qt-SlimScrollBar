@@ -142,8 +142,6 @@ void SlimScrollBar::mouseReleaseEvent(QMouseEvent *e)
 
     if (pressing && e->button() == Qt::LeftButton)
     {
-        pressing = false;
-
         setJitter();
     }
 }
@@ -157,7 +155,7 @@ void SlimScrollBar::wheelEvent(QWheelEvent *e)
 void SlimScrollBar::paintEvent(QPaintEvent *e)
 {
     // 这里是透明度，必须得绘制（不然是纯黑色）
-    QScrollBar::paintEvent(e);
+//    QScrollBar::paintEvent(e);
     if (!enabling)
         return ;
 
@@ -266,19 +264,17 @@ void SlimScrollBar::paintPixmap()
     {
         QPainterPath bg_path;
         QPainterPath fg_path;
-        int ctrl_offset = 32;
+
+        // 获取点
         QPoint offset(popup_offset + QPoint(width()/2, 0));
-        QPoint ctrl_t_p(0, -ctrl_offset);
         QPoint top_p(0, 0);
         QPoint bulge(anchor_pos);
         QPoint btm_p(0, height());
-        QPoint ctrl_b_p(0, height()+ctrl_offset);
-        ctrl_t_p += offset;
         top_p += offset;
         bulge += offset;
         btm_p += offset;
-        ctrl_b_p += offset;
 
+        // 绘制背景
         bg_path.moveTo(top_p);
         bg_path.cubicTo(top_p, bulge, btm_p);
         bg_path.lineTo(btm_p);
@@ -286,8 +282,22 @@ void SlimScrollBar::paintPixmap()
         int pen_w = width();
         pen_w -= quick_sqrt(qAbs(anchor_pos.x()));
         pen_w = qMax(1, pen_w);
-        painter.setPen(QPen(bg_normal_color, pen_w));
+        painter.setPen(getPen(bg_normal_color, pen_w));
         painter.drawPath(bg_path);
+        if (hover_prop)
+        {
+            QColor c = bg_hover_color;
+            c.setAlpha(c.alpha() * hover_prop / 100);
+            painter.setPen(getPen(c, pen_w));
+            painter.drawPath(bg_path);
+        }
+        if (press_prop)
+        {
+            QColor c = bg_press_color;
+            c.setAlpha(c.alpha() * press_prop / 100);
+            painter.setPen(getPen(c, pen_w));
+            painter.drawPath(bg_path);
+        }
 
         // 绘制前景
         int range = maximum() - minimum();
@@ -297,20 +307,20 @@ void SlimScrollBar::paintPixmap()
 
         fg_path.addRect(0, top, pixmap.width(), height);
         painter.setClipPath(fg_path, Qt::IntersectClip);
-        painter.setPen(QPen(fg_normal_color, width()));
+        painter.setPen(getPen(fg_normal_color, width()));
         painter.drawPath(bg_path);
         if (hover_prop)
         {
             QColor c = fg_hover_color;
             c.setAlpha(c.alpha() * hover_prop / 100);
-            painter.setPen(QPen(c, width()));
+            painter.setPen(getPen(c, width()));
             painter.drawPath(bg_path);
         }
         if (press_prop)
         {
             QColor c = fg_press_color;
             c.setAlpha(c.alpha() * press_prop / 100);
-            painter.setPen(QPen(c, width()));
+            painter.setPen(getPen(c, width()));
             painter.drawPath(bg_path);
         }
     }
@@ -411,6 +421,7 @@ void SlimScrollBar::eventTimer()
         if (jitters.size() == 1)
         {
             jitters.clear();
+            pressing = false;
             anchor_pos = effect_pos = target_pos;
         }
     }
@@ -460,6 +471,25 @@ void SlimScrollBar::enable()
 void SlimScrollBar::disable()
 {
     enabling = false;
+}
+
+void SlimScrollBar::setBgColors(QColor normal, QColor hover, QColor press)
+{
+    bg_normal_color = normal;
+    bg_hover_color = hover;
+    bg_press_color = press;
+}
+
+void SlimScrollBar::setFgColors(QColor normal, QColor hover, QColor press)
+{
+    fg_normal_color = normal;
+    fg_hover_color = hover;
+    fg_press_color = press;
+}
+
+void SlimScrollBar::setRoundCap(bool round)
+{
+    round_cap = round;
 }
 
 /**
@@ -567,6 +597,7 @@ void SlimScrollBar::repaintPopup()
  */
 void SlimScrollBar::setJitter()
 {
+    pressing = false;
     jitters.clear();
     QPoint center_pos(0, anchor_pos.y());
     if (center_pos.y() < 0)
@@ -576,6 +607,7 @@ void SlimScrollBar::setJitter()
     int full_manh = qAbs(anchor_pos.x());
     if (full_manh > width() * 3)
     {
+        pressing = true; // 动画消失的时候再关闭
         QPoint jitter_pos(anchor_pos);
         full_manh = (jitter_pos-center_pos).manhattanLength();
         int manh = full_manh;
@@ -602,4 +634,9 @@ void SlimScrollBar::setJitter()
 qint64 SlimScrollBar::getTimestamp()
 {
     return QDateTime::currentDateTime().toMSecsSinceEpoch();
+}
+
+QPen SlimScrollBar::getPen(QColor color, int width)
+{
+    return QPen(color, width, Qt::SolidLine, round_cap ? Qt::RoundCap : Qt::SquareCap);
 }
