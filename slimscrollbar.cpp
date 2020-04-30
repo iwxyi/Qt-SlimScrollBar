@@ -164,7 +164,6 @@ void SlimScrollBar::paintEvent(QPaintEvent *e)
 
     if (!popuping) // 如果没有显示弹窗，绘制到自己
     {
-        qDebug() << "paintEvent" << pixmap.size();
         QPainter painter(this);
         painter.drawPixmap(QRect(0,0,width(),height()), pixmap, QRect(pixmap.width()-width(), 0, width(), height()));
     }
@@ -218,43 +217,79 @@ void SlimScrollBar::paintPixmap()
 {
     pixmap.fill(Qt::transparent);
     QPainter painter(&pixmap);
-    QPainterPath bg_path;
-    QPainterPath fg_path;
 
-    // 绘制背景
-    QRect bg_rect(0,0,width(),height());
-    painter.fillRect(bg_rect,bg_normal_color);
-    if (hover_prop)
+    if (!popuping) // 直接画矩形
     {
-        QColor c = bg_hover_color;
-        c.setAlpha(c.alpha() * hover_prop / 100);
-        painter.fillRect(bg_rect, c);
-    }
-    if (press_prop)
-    {
-        QColor c = bg_press_color;
-        c.setAlpha(c.alpha() * press_prop / 100);
-        painter.fillRect(bg_rect, c);
-    }
+        // 绘制背景
+        QRect bg_rect(0,0,width(),height());
+        painter.fillRect(bg_rect,bg_normal_color);
+        if (hover_prop)
+        {
+            QColor c = bg_hover_color;
+            c.setAlpha(c.alpha() * hover_prop / 100);
+            painter.fillRect(bg_rect, c);
+        }
+        if (press_prop)
+        {
+            QColor c = bg_press_color;
+            c.setAlpha(c.alpha() * press_prop / 100);
+            painter.fillRect(bg_rect, c);
+        }
 
-    // 绘制前景
-    int range = maximum() - minimum();
-    int step = this->pageStep();
-    int height = qMax(this->height() * step / range - 10, 16);
-    int top = (this->height() - height) * sliderPosition() / range;
-    QRect fg_rect(0, top, width(), height);
-    painter.fillRect(fg_rect, fg_normal_color);
-    if (hover_prop)
-    {
-        QColor c = fg_hover_color;
-        c.setAlpha(c.alpha() * hover_prop / 100);
-        painter.fillRect(fg_rect, c);
+        // 绘制前景
+        int range = maximum() - minimum();
+        int step = this->pageStep();
+        int height = qMax(this->height() * step / range - 10, 16);
+        int top = (this->height() - height) * sliderPosition() / range;
+        QRect fg_rect(0, top, width(), height);
+        painter.fillRect(fg_rect, fg_normal_color);
+        if (hover_prop)
+        {
+            QColor c = fg_hover_color;
+            c.setAlpha(c.alpha() * hover_prop / 100);
+            painter.fillRect(fg_rect, c);
+        }
+        if (press_prop)
+        {
+            QColor c = fg_press_color;
+            c.setAlpha(c.alpha() * press_prop / 100);
+            painter.fillRect(fg_rect, c);
+        }
     }
-    if (press_prop)
+    else
     {
-        QColor c = fg_press_color;
-        c.setAlpha(c.alpha() * press_prop / 100);
-        painter.fillRect(fg_rect, c);
+        QPainterPath bg_path;
+        QPainterPath fg_path;
+        int ctrl_offset = 32;
+        QPoint row(width(), 0);
+        QPoint ctrl_t_p(0, -ctrl_offset);
+        QPoint top_p(0, 0);
+        QPoint bulge(anchor_pos);
+        QPoint btm_p(0, height());
+        QPoint ctrl_b_p(0, height()+ctrl_offset);
+        ctrl_t_p += popup_offset;
+        top_p += popup_offset;
+        bulge += popup_offset;
+        btm_p += popup_offset;
+        ctrl_b_p += popup_offset;
+
+        bg_path.moveTo(ctrl_t_p);
+        bg_path.cubicTo(top_p, bulge, btm_p);
+        bg_path.lineTo(ctrl_b_p);
+        bg_path.lineTo(ctrl_b_p + row);
+        bg_path.cubicTo(btm_p + row, bulge + row, top_p + row);
+        bg_path.lineTo(ctrl_t_p + row);
+        bg_path.lineTo(ctrl_t_p);
+        painter.fillPath(bg_path, bg_normal_color);
+
+        qDebug() << bulge;
+        if (popup_offset.x() > 50)
+            pixmap.save("D:/a.png");
+
+        int range = maximum() - minimum();
+        int step = this->pageStep();
+        int height = qMax(this->height() * step / range - 10, 16);
+        int top = (this->height() - height) * sliderPosition() / range;
     }
 }
 
@@ -352,7 +387,6 @@ void SlimScrollBar::eventTimer()
     // 自动暂停
     if(!hovering && !pressing && hover_prop == 0 && press_prop == 0 && effect_pos == QPoint(0,0))
     {
-        qDebug() << "停止";
         event_timer->stop();
         if (popuping)
         {
@@ -365,15 +399,6 @@ void SlimScrollBar::eventTimer()
     }
 
     update();
-}
-
-/**
- * 父类绘制进度条超出的部分
- */
-void SlimScrollBar::paintScrollBar(QPainter &painter, QSize size)
-{
-    QRect rect(size.width()+this->width()-pixmap.width(), 0, pixmap.width(), pixmap.height());
-    painter.drawPixmap(rect, pixmap);
 }
 
 void SlimScrollBar::enable()
@@ -451,6 +476,8 @@ void SlimScrollBar::calcPixmapSize()
     pixmap = QPixmap(QSize(wi, he));
     popup_offset.setX(0-leftest);
     popup_offset.setY(0-topest);
+
+    qDebug() << pixmap.size() << popup_offset << anchor_pos;
 }
 
 /**

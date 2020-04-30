@@ -19,8 +19,6 @@ class SlimScrollBar : public QScrollBar
 public:
     SlimScrollBar(QWidget* parent = nullptr);
 
-    void paintScrollBar(QPainter& painter, QSize size);
-
     void enable();
     void disable();
 
