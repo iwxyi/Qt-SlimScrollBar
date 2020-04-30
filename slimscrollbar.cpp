@@ -217,6 +217,8 @@ void SlimScrollBar::paintPixmap()
 {
     pixmap.fill(Qt::transparent);
     QPainter painter(&pixmap);
+    painter.setRenderHint(QPainter::SmoothPixmapTransform, true);
+    painter.setRenderHint(QPainter::Antialiasing, true);
 
     if (!popuping) // 直接画矩形
     {
@@ -261,35 +263,51 @@ void SlimScrollBar::paintPixmap()
         QPainterPath bg_path;
         QPainterPath fg_path;
         int ctrl_offset = 32;
-        QPoint row(width(), 0);
+        QPoint offset(popup_offset + QPoint(width()/2, 0));
         QPoint ctrl_t_p(0, -ctrl_offset);
         QPoint top_p(0, 0);
         QPoint bulge(anchor_pos);
         QPoint btm_p(0, height());
         QPoint ctrl_b_p(0, height()+ctrl_offset);
-        ctrl_t_p += popup_offset;
-        top_p += popup_offset;
-        bulge += popup_offset;
-        btm_p += popup_offset;
-        ctrl_b_p += popup_offset;
+        ctrl_t_p += offset;
+        top_p += offset;
+        bulge += offset;
+        btm_p += offset;
+        ctrl_b_p += offset;
 
-        bg_path.moveTo(ctrl_t_p);
+        bg_path.moveTo(top_p);
         bg_path.cubicTo(top_p, bulge, btm_p);
-        bg_path.lineTo(ctrl_b_p);
-        bg_path.lineTo(ctrl_b_p + row);
-        bg_path.cubicTo(btm_p + row, bulge + row, top_p + row);
-        bg_path.lineTo(ctrl_t_p + row);
-        bg_path.lineTo(ctrl_t_p);
-        painter.fillPath(bg_path, bg_normal_color);
+        bg_path.lineTo(btm_p);
 
-        qDebug() << bulge;
-        if (popup_offset.x() > 50)
-            pixmap.save("D:/a.png");
+        int pen_w = width();
+        pen_w -= quick_sqrt(qMax(qAbs(popup_offset.x()), qAbs(popup_offset.y())));
+        pen_w = qMax(1, pen_w);
+        painter.setPen(QPen(bg_normal_color, pen_w));
+        painter.drawPath(bg_path);
 
         int range = maximum() - minimum();
         int step = this->pageStep();
         int height = qMax(this->height() * step / range - 10, 16);
         int top = (this->height() - height) * sliderPosition() / range;
+
+        fg_path.addRect(0, top, pixmap.width(), height);
+        painter.setClipPath(fg_path, Qt::IntersectClip);
+        painter.setPen(QPen(fg_normal_color, width()));
+        painter.drawPath(bg_path);
+        if (hover_prop)
+        {
+            QColor c = fg_hover_color;
+            c.setAlpha(c.alpha() * hover_prop / 100);
+            painter.setPen(QPen(c, width()));
+            painter.drawPath(bg_path);
+        }
+        if (press_prop)
+        {
+            QColor c = fg_press_color;
+            c.setAlpha(c.alpha() * press_prop / 100);
+            painter.setPen(QPen(c, width()));
+            painter.drawPath(bg_path);
+        }
     }
 }
 
@@ -364,6 +382,7 @@ void SlimScrollBar::eventTimer()
     }
 
     // 判断移动
+//    QPoint sqrt_pos(quick_sqrt(target_pos.x()), quick_sqrt(target_pos.y())); // 开方再开方
     if (anchor_pos != target_pos)
     {
         int delta_x = anchor_pos.x() - target_pos.x();
@@ -476,8 +495,6 @@ void SlimScrollBar::calcPixmapSize()
     pixmap = QPixmap(QSize(wi, he));
     popup_offset.setX(0-leftest);
     popup_offset.setY(0-topest);
-
-    qDebug() << pixmap.size() << popup_offset << anchor_pos;
 }
 
 /**
