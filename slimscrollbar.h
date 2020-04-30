@@ -40,6 +40,7 @@ protected:
 private:
     void paintPixmap();
     void activeTimer();
+    void setOffsetPoss();
     int quick_sqrt(long X) const;
     void calcPixmapSize();
     void startPopup();
@@ -74,6 +75,7 @@ private:
     QPoint anchor_pos; // 逐步靠近目标点的锚点
     QPoint effect_pos; // 偏差（相对于左上角），逐步靠近锚点根号位置
 
+    bool popuping = false;
     SlimScrollBarPopup* popup = nullptr;
     QPoint popup_offset; // 弹窗和自己的左上角的绝对位置差
 };
