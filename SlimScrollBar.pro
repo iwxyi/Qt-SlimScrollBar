@@ -15,18 +15,20 @@ DEFINES += QT_DEPRECATED_WARNINGS
 # You can also select to disable deprecated APIs only up to a certain version of Qt.
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
+INCLUDEPATH += slim_scroll_bar
+
 SOURCES += \
     main.cpp \
     mainwindow.cpp \
     mytextedit.cpp \
-    slimscrollbar.cpp \
-    slimscrollbarpopup.cpp
+    slim_scroll_bar/slimscrollbar.cpp \
+    slim_scroll_bar/slimscrollbarpopup.cpp
 
 HEADERS += \
     mainwindow.h \
     mytextedit.h \
-    slimscrollbar.h \
-    slimscrollbarpopup.h
+    slim_scroll_bar/slimscrollbar.h \
+    slim_scroll_bar/slimscrollbarpopup.h
 
 FORMS += \
     mainwindow.ui
