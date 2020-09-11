@@ -10,6 +10,7 @@
 #include <QTimer>
 #include <QDebug>
 #include <QDateTime>
+#include <QtMath>
 #include "slimscrollbarpopup.h"
 
 #define DEB_EVENT if (0) qDebug()

@@ -180,12 +180,17 @@ void SlimScrollBar::paintEvent(QPaintEvent *e)
  * - 0 范围改变
  * - 1 方向改变
  * - 2 步长改变
- * - 3 进度改变
+ * - 3 进度改变(最容易触发)
  */
 void SlimScrollBar::sliderChange(QAbstractSlider::SliderChange change)
 {
-    DEB_EVENT << "sliderChange" << change;
     QScrollBar::sliderChange(change);
+    if (change == 0)
+        emit rangeChanged(minimum(), maximum()); // 手动调用改变事件，用来触发
+    if (change != 3)
+        DEB_EVENT << "sliderChange" << change << "(" << minimum() << maximum() << ")" << pageStep();
+    else
+        DEB_EVENT << "sliderChange" << change << "(" << minimum() << maximum() << ")" << sliderPosition();
 }
 
 void SlimScrollBar::contextMenuEvent(QContextMenuEvent *e)
@@ -241,23 +246,34 @@ void SlimScrollBar::paintPixmap()
         }
 
         // 绘制前景
-        int range = maximum() - minimum();
         int step = this->pageStep();
-        int height = qMax(this->height() * step / range - 10, 16);
-        int top = (this->height() - height) * sliderPosition() / range;
-        QRect fg_rect(0, top, width(), height);
-        painter.fillRect(fg_rect, fg_normal_color);
+        int range = maximum() - minimum() + step;
+        int height = qMax(this->height() * step / range, 16);
+        int top = this->height() * (sliderPosition()+minimum()) / range;
+
+//        QRect fg_rect(0, top, width(), height);
+//        painter.fillRect(fg_rect, fg_normal_color);
+        int pen_w = width();
+        QPainterPath bg_path;
+        bg_path.moveTo(pen_w/2, top);
+        bg_path.lineTo(pen_w/2, top + height);
+        painter.setPen(getPen(fg_normal_color, pen_w));
+        painter.drawPath(bg_path);
         if (hover_prop)
         {
             QColor c = fg_hover_color;
             c.setAlpha(c.alpha() * hover_prop / 100);
-            painter.fillRect(fg_rect, c);
+//            painter.fillRect(fg_rect, c);
+            painter.setPen(getPen(fg_hover_color, pen_w));
+            painter.drawPath(bg_path);
         }
         if (press_prop)
         {
             QColor c = fg_press_color;
             c.setAlpha(c.alpha() * press_prop / 100);
-            painter.fillRect(fg_rect, c);
+//            painter.fillRect(fg_rect, c);
+            painter.setPen(getPen(fg_press_color, pen_w));
+            painter.drawPath(bg_path);
         }
     }
     else
@@ -300,10 +316,10 @@ void SlimScrollBar::paintPixmap()
         }
 
         // 绘制前景
-        int range = maximum() - minimum();
         int step = this->pageStep();
-        int height = qMax(this->height() * step / range - 10, 16);
-        int top = (this->height() - height) * sliderPosition() / range;
+        int range = maximum() - minimum() + step;
+        int height = qMax(this->height() * step / range, 16);
+        int top = this->height() * (sliderPosition()+minimum()) / range;
 
         fg_path.addRect(0, top, pixmap.width(), height);
         painter.setClipPath(fg_path, Qt::IntersectClip);
